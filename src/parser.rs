@@ -1,10 +1,10 @@
 /// Parser for the Smalltalk programming language.
 
-use combine::{none_of, many, many1, try, token, optional, value};
+use combine::{none_of, many, many1, try, token, optional};
 use combine::Parser;
-use combine::primitives::{Stream};
-use combine::combinator::{any};
-use combine::char::{digit, upper, char, string};
+use combine::primitives::Stream;
+use combine::combinator::{any, choice, between, sep_by};
+use combine::char::{digit, upper, char, string, alpha_num, spaces};
 
 use syntax::*;
 
@@ -49,7 +49,7 @@ parser! {
                      digits()
                     ).map(|t| t.1)
                     )
-            }  
+            }
         }
     }
 }
@@ -80,6 +80,40 @@ parser! {
     }
 }
 
+/// Parses an array of literals or a symbol depending on if there is a
+/// paren immediately following the hash.
+parser! {
+    fn sm_hash_starter[I]()(I) -> Literal
+        where [I:Stream<Item = char>]
+    {
+        token('#')
+            .then(|_|
+                many1(alpha_num())
+                    .map(|t| Literal::Symbol(t))
+                    .or(
+                    between(
+                        token('('),
+                        token(')'),
+                        sep_by(literal(), spaces())
+                    ).map(|t| Literal::Array(t))
+                )
+            )
+    }
+}
+
+/// Parse any kind of Smalltalk literal. Don't worry. Just throw whatever you
+/// got at it.
+parser! {
+    fn literal[I]()(I) -> Literal
+        where [I:Stream<Item = char>]
+    {
+        number().map(|t| Literal::Number(t))
+            .or(sm_char())
+            .or(sm_string())
+            .or(sm_hash_starter())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -88,7 +122,7 @@ mod tests {
     fn test_digits() {
         let ans: u32 = 10;
         let res = digits().parse("10");
-        assert_eq!(res, Ok((ans, ""))); 
+        assert_eq!(res, Ok((ans, "")));
     }
 
     #[test]
@@ -164,6 +198,24 @@ mod tests {
     fn test_string_quotes() {
         let res = sm_string().parse("'hello ''world'''");
         let ans = Literal::Str(String::from("hello 'world'"));
+        assert_eq!(res, Ok((ans, "")));
+    }
+
+    #[test]
+    fn test_symbol() {
+        let res = sm_hash_starter().parse("#foobar123");
+        let ans = Literal::Symbol(String::from("foobar123"));
+        assert_eq!(res, Ok((ans, "")));
+    }
+
+    #[test]
+    fn test_literal() {
+        let res = literal().parse("#('hello' 123 #world)");
+        let ans = Literal::Array(vec![
+            Literal::Str(String::from("hello")),
+            Literal::Number(mk_num(String::from("123"))),
+            Literal::Symbol(String::from("world")),
+        ]);
         assert_eq!(res, Ok((ans, "")));
     }
 }
