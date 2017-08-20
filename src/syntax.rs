@@ -8,6 +8,8 @@ pub enum Expr {
     
 }
 
+
+#[derive(Debug, PartialEq)]
 pub enum Literal {
     Number(Num),
     Char(char),

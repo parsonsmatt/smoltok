@@ -1,11 +1,10 @@
 /// Parser for the Smalltalk programming language.
 
-use combine::{many1, try, token, optional};
+use combine::{none_of, many, many1, try, token, optional, value};
 use combine::Parser;
 use combine::primitives::{Stream};
-use combine::combinator::With;
-use combine::combinator::{and_then};
-use combine::char::{digit, letter, spaces, char, alpha_num, upper};
+use combine::combinator::{any};
+use combine::char::{digit, upper, char, string};
 
 use syntax::*;
 
@@ -52,6 +51,32 @@ parser! {
                     )
             }  
         }
+    }
+}
+
+/// Parse a Smalltalk character.
+parser! {
+    fn sm_char[I]()(I) -> Literal
+        where [I:Stream<Item = char>]
+    {
+        (token('$'),
+         any()
+        ).map(|t| Literal::Char(t.1))
+    }
+}
+
+/// Parse a Smalltalk string.
+parser! {
+    fn sm_string[I]()(I) -> Literal
+        where [I:Stream<Item = char>]
+    {
+        (token('\''),
+         many(
+             none_of("'".chars())
+                .or(try(string("''").map(|_| '\'' )))
+             ),
+         token('\'')
+        ).map(|t| Literal::Str(t.1))
     }
 }
 
@@ -118,6 +143,27 @@ mod tests {
             mantissa: Some(String::from("DC")),
             radix: Some(16),
         };
+        assert_eq!(res, Ok((ans, "")));
+    }
+
+    #[test]
+    fn test_char() {
+        let res = sm_char().parse("$a");
+        let ans = Literal::Char('a');
+        assert_eq!(res, Ok((ans, "")));
+    }
+
+    #[test]
+    fn test_string() {
+        let res = sm_string().parse("'hello world'");
+        let ans = Literal::Str(String::from("hello world"));
+        assert_eq!(res, Ok((ans, "")));
+    }
+
+    #[test]
+    fn test_string_quotes() {
+        let res = sm_string().parse("'hello ''world'''");
+        let ans = Literal::Str(String::from("hello 'world'"));
         assert_eq!(res, Ok((ans, "")));
     }
 }
