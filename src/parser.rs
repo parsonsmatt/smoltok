@@ -8,16 +8,41 @@ use combine::char::{letter, digit, upper, char, string, alpha_num, spaces};
 
 use syntax::*;
 
-/// Parse an identifier.
 parser! {
-    fn ident[I]()(I) -> Expr
+    fn expr[I]()(I) -> Expr
         where [I: Stream<Item = char>]
     {
-        (letter(), many(alpha_num())).map(|(c, cs): (char, String)|
-            Expr::Id(format!("{}{}", c, cs)) 
-        ) 
+        assignment()
+            .or(ident().map(|c| Expr::Id(c)))
+            .or(literal().map(|c| Expr::Lit(c)))
     }
+}
 
+/// Parse an identifier.
+parser! {
+    fn ident[I]()(I) -> Ident
+        where [I: Stream<Item = char>]
+    {
+        (letter(), many(alpha_num()), spaces()).map(|(c, cs, _): (char, String, ())|
+            Ident(format!("{}{}", c, cs))
+        )
+    }
+}
+
+/// Parse assignment syntax. Smalltalk supports multiple assignment, so we
+/// return a list of string identifiers
+parser! {
+    fn assignment[I]()(I) -> Expr
+        where [I: Stream<Item = char>]
+    {
+        ( ident(),
+          string("<-"),
+          spaces(),
+          expr(),
+        ).map(|(i, _, _, e)|
+              Expr::Assign(i, Box::new(e))
+        )
+    }
 }
 
 /// Parse an integral number.
@@ -119,10 +144,10 @@ parser! {
     fn literal[I]()(I) -> Literal
         where [I:Stream<Item = char>]
     {
-        number().map(|t| Literal::Number(t))
+        spaces().then(|_| number().map(|t| Literal::Number(t))
             .or(sm_char())
             .or(sm_string())
-            .or(sm_hash_starter())
+            .or(sm_hash_starter()))
     }
 }
 
@@ -234,7 +259,17 @@ mod tests {
     #[test]
     fn test_ident() {
         let res = ident().parse("index");
-        let ans = Expr::Id(String::from("index"));
+        let ans = mk_ident("index");
+        assert_eq!(res, Ok((ans, "")))
+    }
+
+    #[test]
+    fn test_single_assignment() {
+        let res = assignment().parse("foo <- bar");
+        let ans = Expr::Assign(
+            mk_ident("foo"),
+            Box::new(mk_ident_expr("bar"))
+        );
         assert_eq!(res, Ok((ans, "")))
     }
 }
