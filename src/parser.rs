@@ -3,10 +3,22 @@
 use combine::{none_of, many, many1, try, token, optional};
 use combine::Parser;
 use combine::primitives::Stream;
-use combine::combinator::{any, choice, between, sep_by};
-use combine::char::{digit, upper, char, string, alpha_num, spaces};
+use combine::combinator::{value, any, choice, between, sep_by};
+use combine::char::{letter, digit, upper, char, string, alpha_num, spaces};
 
 use syntax::*;
+
+/// Parse an identifier.
+parser! {
+    fn ident[I]()(I) -> Expr
+        where [I: Stream<Item = char>]
+    {
+        (letter(), many(alpha_num())).map(|(c, cs): (char, String)|
+            Expr::Id(format!("{}{}", c, cs)) 
+        ) 
+    }
+
+}
 
 /// Parse an integral number.
 parser! {
@@ -217,5 +229,12 @@ mod tests {
             Literal::Symbol(String::from("world")),
         ]);
         assert_eq!(res, Ok((ans, "")));
+    }
+
+    #[test]
+    fn test_ident() {
+        let res = ident().parse("index");
+        let ans = Expr::Id(String::from("index"));
+        assert_eq!(res, Ok((ans, "")))
     }
 }

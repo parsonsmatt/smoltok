@@ -4,8 +4,9 @@ pub enum Syntax {
     Expr(Expr)
 }
 
+#[derive(Debug, PartialEq, Clone)]
 pub enum Expr {
-    
+    Id(String),
 }
 
 

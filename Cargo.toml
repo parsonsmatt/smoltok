@@ -1,5 +1,5 @@
 [package]
-name = "smalltalk-80"
+name = "smoltok"
 version = "0.1.0"
 authors = ["Matt Parsons <parsonsmatt@gmail.com>"]
 
