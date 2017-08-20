@@ -128,7 +128,7 @@ mod tests {
     #[test]
     fn test_bare_number() {
         let res = number().parse("10");
-        let ans = mk_num(String::from("10"));
+        let ans = mk_num("10");
         assert_eq!(res, Ok((ans, "")));
     }
 
@@ -213,7 +213,7 @@ mod tests {
         let res = literal().parse("#('hello' 123 #world)");
         let ans = Literal::Array(vec![
             Literal::Str(String::from("hello")),
-            Literal::Number(mk_num(String::from("123"))),
+            Literal::Number(mk_num("123")),
             Literal::Symbol(String::from("world")),
         ]);
         assert_eq!(res, Ok((ans, "")));

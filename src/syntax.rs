@@ -34,9 +34,9 @@ pub struct Num {
     pub exponent: Option<u32>,
 }
 
-pub fn mk_num(s: String) -> Num { 
+pub fn mk_num(s: &str) -> Num { 
     Num {
-        integer: s,
+        integer: String::from(s),
         radix: None,
         mantissa: None,
         exponent: None
