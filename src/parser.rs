@@ -12,9 +12,20 @@ parser! {
     fn expr[I]()(I) -> Expr
         where [I: Stream<Item = char>]
     {
-        assignment()
-            .or(ident().map(|c| Expr::Id(c)))
-            .or(literal().map(|c| Expr::Lit(c)))
+        literal().map(|l| Expr::Lit(l))
+            .or(
+                try(
+                    (ident(), assignment(), expr())
+                        .map(|(i, (), e)|
+                            Expr::Assign(i, Box::new(e))
+                             )
+
+                )
+            ).or(
+                try(
+                    ident().map(|i| Expr::Id(i))
+                )
+            )
     }
 }
 
@@ -32,16 +43,12 @@ parser! {
 /// Parse assignment syntax. Smalltalk supports multiple assignment, so we
 /// return a list of string identifiers
 parser! {
-    fn assignment[I]()(I) -> Expr
+    fn assignment[I]()(I) -> ()
         where [I: Stream<Item = char>]
     {
-        ( ident(),
-          string("<-"),
+        ( string("<-"),
           spaces(),
-          expr(),
-        ).map(|(i, _, _, e)|
-              Expr::Assign(i, Box::new(e))
-        )
+        ).map(|(_, e)| e)
     }
 }
 
@@ -265,7 +272,7 @@ mod tests {
 
     #[test]
     fn test_single_assignment() {
-        let res = assignment().parse("foo <- bar");
+        let res = expr().parse("foo <- bar");
         let ans = Expr::Assign(
             mk_ident("foo"),
             Box::new(mk_ident_expr("bar"))
