@@ -273,10 +273,7 @@ mod tests {
     #[test]
     fn test_single_assignment() {
         let res = expr().parse("foo <- bar");
-        let ans = Expr::Assign(
-            mk_ident("foo"),
-            Box::new(mk_ident_expr("bar"))
-        );
+        let ans = Expr::Assign(mk_ident("foo"), Box::new(mk_ident_expr("bar")));
         assert_eq!(res, Ok((ans, "")))
     }
 
@@ -285,7 +282,22 @@ mod tests {
         let res = expr().parse("foo <- 'hello world'");
         let ans = Expr::Assign(
             mk_ident("foo"),
-            Box::new(Expr::Lit(Literal::Str(String::from("hello world"))))
+            Box::new(Expr::Lit(Literal::Str(String::from("hello world")))),
+        );
+        assert_eq!(res, Ok((ans, "")));
+    }
+
+    #[test]
+    fn test_assign_number() {
+        let res = expr().parse("foo <- 3r2e3");
+        let ans = Expr::Assign(
+            mk_ident("foo"),
+            Box::new(Expr::Lit(Literal::Number(Num {
+                radix: Some(3),
+                integer: String::from("2"),
+                mantissa: None,
+                exponent: Some(3),
+            }))),
         );
         assert_eq!(res, Ok((ans, "")));
     }
