@@ -9,7 +9,15 @@ pub enum Expr {
     Id(Ident),
     Assign(Ident, Box<Expr>),
     Lit(Literal),
-    Message { receiver: Box<Expr>, selector: Msg }
+    Message { receiver: Box<Expr>, selector: Msg },
+    Block { vars: Vec<Ident>, statements: Vec<Expr>}
+}
+
+pub struct Statements(Vec<Statement>);
+
+pub enum Statement {
+    E(Expr),
+    Ret(Expr)
 }
 
 #[derive(Debug, PartialEq, Clone)]
