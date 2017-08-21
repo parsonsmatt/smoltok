@@ -3,8 +3,8 @@
 use combine::{none_of, many, many1, try, token, optional};
 use combine::Parser;
 use combine::primitives::Stream;
-use combine::combinator::{value, any, choice, between, sep_by};
-use combine::char::{letter, digit, upper, char, string, alpha_num, spaces};
+use combine::combinator::{any, between, sep_by, satisfy};
+use combine::char::{letter, digit, upper, string, alpha_num, spaces};
 
 use syntax::*;
 
@@ -16,16 +16,53 @@ parser! {
             .or(
                 try(
                     (ident(), assignment(), expr())
-                        .map(|(i, (), e)|
-                            Expr::Assign(i, Box::new(e))
-                             )
-
+                        .map(|(i, (), e)| Expr::Assign(i, Box::new(e)))
                 )
             ).or(
                 try(
-                    ident().map(|i| Expr::Id(i))
+                    (ident(), msg())
+                        .map(|(e, m)|
+                            Expr::Message {
+                                receiver: Box::new(Expr::Id(e)),
+                                selector: m
+                            })
+                )
+            ).or(
+                try(
+                    ident().map(Expr::Id)
                 )
             )
+    }
+}
+
+/// Parse message syntax
+parser! {
+    fn msg[I]()(I) -> Msg
+        where [I: Stream<Item = char>]
+    {
+        (operator(), spaces(), expr()).map(|(o, _, e)| Msg::Binary(o, Box::new(e)))
+            .or(
+                try(many1(keyword()).map(|r|
+                Msg::Kwargs(r))
+            )).or(ident().map(Msg::Unary))
+    }
+}
+
+parser! {
+    fn keyword[I]()(I) -> Keyword
+        where [I: Stream<Item = char>]
+    {
+        (ident(), token(':'), spaces(), expr(), spaces())
+            .map(|(id, _, _, val, _)| Keyword { id, val })
+    }
+
+}
+
+parser! {
+    fn operator[I]()(I) -> String
+        where [I: Stream<Item = char>]
+    {
+        string("+").map(String::from)
     }
 }
 
@@ -133,13 +170,13 @@ parser! {
         token('#')
             .then(|_|
                 many1(alpha_num())
-                    .map(|t| Literal::Symbol(t))
+                    .map(Literal::Symbol)
                     .or(
                     between(
                         token('('),
                         token(')'),
                         sep_by(literal(), spaces())
-                    ).map(|t| Literal::Array(t))
+                    ).map(Literal::Array)
                 )
             )
     }
@@ -151,7 +188,7 @@ parser! {
     fn literal[I]()(I) -> Literal
         where [I:Stream<Item = char>]
     {
-        spaces().then(|_| number().map(|t| Literal::Number(t))
+        spaces().then(|_| number().map(Literal::Number)
             .or(sm_char())
             .or(sm_string())
             .or(sm_hash_starter()))
@@ -307,15 +344,66 @@ mod tests {
         let res = expr().parse("foo <- bar <- 'hello world'");
         let ans = Expr::Assign(
             mk_ident("foo"),
-            Box::new(
-                Expr::Assign(
-                    mk_ident("bar"),
-                    Box::new(
-                        Expr::Lit(
-                            Literal::Str(String::from("hello world"))
-                            )
-                        ))
-                )
-            );
+            Box::new(Expr::Assign(
+                mk_ident("bar"),
+                Box::new(
+                    Expr::Lit(Literal::Str(String::from("hello world"))),
+                ),
+            )),
+        );
+        assert_eq!(res, Ok((ans, "")));
+    }
+
+//    #[test]
+//    fn test_unary_message() {
+//        let res = expr().parse("theta sin");
+//        let ans = Expr::Message {
+//            receiver: Box::new(Expr::Id(Ident(String::from("theta")))),
+//            selector: Msg::Unary(Ident(String::from("sin"))),
+//        };
+//        assert_eq!(res, Ok((ans, "")));
+//    }
+
+    #[test]
+    fn test_unary_message() {
+        let res = msg().parse("bar");
+        let ans = Msg::Unary(Ident(String::from("bar")));
+        assert_eq!(res, Ok((ans, "")));
+    }
+
+    #[test]
+    fn test_binary_message() {
+        let res = msg().parse("+ 3");
+        let ans = Msg::Binary(
+            String::from("+"),
+            Box::new(Expr::Lit(Literal::Number(mk_num("3")))
+        ));
+        assert_eq!(res, Ok((ans, "")))
+    }
+
+    #[test]
+    fn test_keyword_message() {
+        let res = msg().parse("foo: $a");
+        let ans = Msg::Kwargs(vec![Keyword{
+            id: mk_ident("foo"),
+            val: Expr::Lit(Literal::Char('a'))
+        }]);
+        assert_eq!(res, Ok((ans, "")));
+    }
+
+    #[test]
+    fn test_keyword_messages() {
+        let res = msg().parse("foo: $a bar: $b");
+        let ans = Msg::Kwargs(vec![
+            Keyword {
+                id: mk_ident("foo"),
+                val: Expr::Lit(Literal::Char('a'))
+            },
+            Keyword {
+                id: mk_ident("bar"),
+                val: Expr::Lit(Literal::Char('b'))
+            },
+        ]);
+        assert_eq!(res, Ok((ans, "")));
     }
 }

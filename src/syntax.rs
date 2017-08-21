@@ -8,7 +8,21 @@ pub enum Syntax {
 pub enum Expr {
     Id(Ident),
     Assign(Ident, Box<Expr>),
-    Lit(Literal)
+    Lit(Literal),
+    Message { receiver: Box<Expr>, selector: Msg }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum Msg {
+    Unary(Ident),
+    Binary(String, Box<Expr>),
+    Kwargs(Vec<Keyword>),
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct Keyword {
+    pub id: Ident,
+    pub val: Expr,
 }
 
 #[derive(Debug, PartialEq, Clone)]
