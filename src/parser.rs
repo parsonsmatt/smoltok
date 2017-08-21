@@ -301,4 +301,21 @@ mod tests {
         );
         assert_eq!(res, Ok((ans, "")));
     }
+
+    #[test]
+    fn test_multiple_assignment() {
+        let res = expr().parse("foo <- bar <- 'hello world'");
+        let ans = Expr::Assign(
+            mk_ident("foo"),
+            Box::new(
+                Expr::Assign(
+                    mk_ident("bar"),
+                    Box::new(
+                        Expr::Lit(
+                            Literal::Str(String::from("hello world"))
+                            )
+                        ))
+                )
+            );
+    }
 }
