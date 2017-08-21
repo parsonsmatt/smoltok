@@ -279,4 +279,14 @@ mod tests {
         );
         assert_eq!(res, Ok((ans, "")))
     }
+
+    #[test]
+    fn test_expr_assigment() {
+        let res = expr().parse("foo <- 'hello world'");
+        let ans = Expr::Assign(
+            mk_ident("foo"),
+            Box::new(Expr::Lit(Literal::Str(String::from("hello world"))))
+        );
+        assert_eq!(res, Ok((ans, "")));
+    }
 }
