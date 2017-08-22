@@ -10,11 +10,10 @@ pub enum Expr {
     Assign(Ident, Box<Expr>),
     Lit(Literal),
     Message { receiver: Box<Expr>, selector: Msg },
-    Block { vars: Vec<Ident>, statements: Vec<Expr>}
+    Block { vars: Vec<Ident>, statements: Vec<Statement>},
 }
 
-pub struct Statements(Vec<Statement>);
-
+#[derive(Debug, PartialEq, Clone)]
 pub enum Statement {
     E(Expr),
     Ret(Expr)
