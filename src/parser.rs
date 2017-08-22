@@ -17,7 +17,7 @@ parser! {
                 .map(|t| Expr::Assign(t.0, Box::new(t.2)))
            ).or(try(cascaded_message_expr()))
             .or(try(message_expr()))
-            .or(primary())
+            .or(try(primary()))
     }
 }
 
@@ -29,6 +29,8 @@ parser! {
     }
 }
 
+/// The mutual recursion between unary object and unary expr is the cause of the
+/// problem.
 parser! {
     fn unary_expr[I]()(I) -> Expr
         where [I: Stream<Item = char>]
@@ -79,8 +81,8 @@ parser! {
     {
         (binary_object(),
          many1(
-             (keyword_lit(), binary_object(), spaces())
-                .map(|(s, o, _)| Keyword {
+             (spaces(), keyword_lit(), binary_object())
+                .map(|(_, s, o)| Keyword {
                     id: Ident(s),
                     val: o
                 })
@@ -177,14 +179,16 @@ parser! {
     {
         (token('^'), spaces(), expr()).map(|(_, _, e)| vec![Statement::Ret(e)])
             .or(
-                ((expr(), token('.'), spaces(), statements())
+                try((expr(), token('.'), spaces(), statements()))
                     .map(|(e, _, _, s)| {
                         let mut m = Vec::new();
                         m.push(Statement::E(e));
                         m.extend(s);
                         m
                     })
-            )).or(value(vec![]))
+            ).or(
+                expr().map(|e| vec![Statement::E(e)])
+            ).or(value(vec![]))
     }
 }
 
@@ -365,6 +369,13 @@ parser! {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn  is_err<T, E>(x : Result<T, E>) -> bool {
+        match x {
+            Ok(_) => false,
+            _ => true,
+        }
+    }
 
     #[test]
     fn test_digits() {
@@ -604,6 +615,40 @@ mod tests {
 //        let ans = vec![];
 //        assert_eq!(res, Ok((ans, "")));
 //    }
+
+//    #[test]
+//    fn test_empty_expr() {
+//        let res = expr().parse("");
+//        assert!(is_err(res));
+//    }
+
+    #[test]
+    fn test_empty_ident() {
+        assert!(is_err(ident().parse("")));
+    }
+
+    #[test]
+    fn test_empty_primary() {
+        assert!(is_err(primary().parse("")));
+    }
+
+    #[test]
+    fn test_empty_message_expr() {
+        assert!(is_err(message_expr().parse("")));
+    }
+
+//    #[test]
+//    fn test_empty_cascaded_message_expr() {
+//        assert!(is_err(cascaded_message_expr().parse("")));
+//    }
+
+    #[test]
+    fn test_expr_statement() {
+        let res = statements().parse("what");
+        let ans = vec![Statement::E(mk_ident_expr("what"))];
+        assert_eq!(res, Ok((ans, "")));
+    }
+
 
     #[test]
     fn test_return_statement() {
