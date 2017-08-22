@@ -55,7 +55,7 @@ parser! {
     fn binary_object[I]()(I) -> Expr
         where [I: Stream<Item = char>]
     {
-        unary_object().or(binary_expr())
+        spaces().then(|_| unary_object().or(binary_expr()))
     }
 }
 
@@ -79,8 +79,8 @@ parser! {
     {
         (binary_object(),
          many1(
-             (keyword_lit(), binary_object())
-                .map(|(s, o)| Keyword {
+             (keyword_lit(), binary_object(), spaces())
+                .map(|(s, o, _)| Keyword {
                     id: Ident(s),
                     val: o
                 })
@@ -109,7 +109,7 @@ parser! {
         where [I: Stream<Item = char>]
     {
         let next = (
-            token(';'),
+            optional(token(';')),
             unary_selector()
                 .or(
                     (binary_selector(), unary_object())
@@ -330,12 +330,13 @@ parser! {
     fn binary_selector[I]()(I) -> String
         where [I:Stream<Item = char>]
     {
-        (special_char(), optional(special_char()))
-            .or(token('-').map(|t| (t, None)))
-            .map(|(c, mc)| match mc {
+        spaces().then(|_| (special_char(), optional(special_char()), spaces())
+            .or(token('-').map(|t| (t, None, ())))
+            .map(|(c, mc, _)| match mc {
                 Some(x) => format!("{}{}", c, x),
                 None => format!("{}", c)
-            })
+            }))
+
     }
 }
 
@@ -526,6 +527,26 @@ mod tests {
         let ans = Expr::Message {
             receiver: Box::new(mk_ident_expr("theta")),
             selector: Msg::Unary(mk_ident("sin")),
+        };
+        assert_eq!(res, Ok((ans, "")));
+    }
+
+    #[test]
+    fn test_binary_expr_num() {
+        let res = binary_expr().parse("3 + 2");
+        let ans = Expr::Message {
+            receiver: Box::new(Expr::Lit(Literal::Number(mk_num("3")))),
+            selector: Msg::Binary(String::from("+"), Box::new(Expr::Lit(Literal::Number(mk_num("2")))))
+        };
+        assert_eq!(res, Ok((ans, "")));
+    }
+
+    #[test]
+    fn test_binary_expr() {
+        let res = expr().parse("foo + 2");
+        let ans = Expr::Message {
+            receiver: Box::new(mk_ident_expr("foo")),
+            selector: Msg::Binary(String::from("+"), Box::new(Expr::Lit(Literal::Number(mk_num("2")))))
         };
         assert_eq!(res, Ok((ans, "")));
     }
