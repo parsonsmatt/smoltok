@@ -14,6 +14,19 @@ pub enum Expr {
 }
 
 #[derive(Debug, PartialEq, Clone)]
+pub enum MsgPat {
+    Unary(Ident),
+    Bin(Ident, Ident),
+    Kwargs(Vec<KeyPat>)
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct KeyPat {
+    pub keyword: Ident,
+    pub var: Ident,
+}
+
+#[derive(Debug, PartialEq, Clone)]
 pub enum Statement {
     E(Expr),
     Ret(Expr)
@@ -39,6 +52,13 @@ pub enum Literal {
     Str(String),
     Symbol(String),
     Array(Vec<Literal>),
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct Method {
+    pub sig: MsgPat,
+    pub temps: Option<Vec<Ident>>,
+    pub stmts: Option<Vec<Statement>>,
 }
 
 #[derive(Debug, PartialEq, Clone)]

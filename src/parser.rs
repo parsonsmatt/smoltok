@@ -352,6 +352,48 @@ parser! {
     }
 }
 
+parser! {
+    fn message_pattern[I]()(I) -> MsgPat
+        where [I:Stream<Item=char>]
+    {
+        let kwargs = many1(
+            try((keyword_lit(), ident()))
+                .map(|(k, var)| KeyPat { keyword: Ident(k), var })
+        ).map(MsgPat::Kwargs);
+
+        let bin = (binary_selector(), ident()).map(|(a, b)| MsgPat::Bin(Ident(a), b));
+        try(kwargs)
+            .or(try(bin))
+            .or(ident().map(MsgPat::Unary))
+    }
+}
+
+parser! {
+    fn temporaries[I]()(I) -> Vec<Ident>
+        where [I:Stream<Item=char>]
+    {
+        between(
+            token('|').then(|_| spaces()),
+            token('|').then(|_| spaces()),
+            many1(ident())
+        )
+    }
+}
+
+parser! {
+    fn method_p[I]()(I) -> Method
+        where [I:Stream<Item=char>]
+    {
+        ( message_pattern(),
+          optional(temporaries()),
+          optional(statements())
+        ).map(|(sig, temps, stmts)|
+            Method { sig, temps, stmts }
+        )
+
+    }
+}
+
 /// Parse any kind of Smalltalk literal. Don't worry. Just throw whatever you
 /// got at it.
 parser! {
@@ -684,6 +726,121 @@ mod tests {
         ];
         assert_eq!(res, Ok((ans, "")));
     }
+
+    #[test]
+    fn test_message_pattern_unary() {
+        let res = message_pattern().parse("hello");
+        let ans = MsgPat::Unary(mk_ident("hello"));
+        assert_eq!(res, Ok((ans, "")));
+    }
+
+    #[test]
+    fn test_message_pattern_binary() {
+        let res = message_pattern().parse("+ hello");
+        let ans = MsgPat::Bin(mk_ident("+"), mk_ident("hello"));
+        assert_eq!(res, Ok((ans, "")));
+    }
+
+    #[test]
+    fn test_mssage_pattern_kwargs() {
+        let res = message_pattern().parse("foo: bar");
+        let ans = MsgPat::Kwargs(vec![
+            KeyPat {
+                keyword: mk_ident("foo:"),
+                var: mk_ident("bar")
+            }
+        ]);
+        assert_eq!(res, Ok((ans, "")));
+    }
+
+    #[test]
+    fn test_method() {
+        let res = method_p().parse("foo ^ bar");
+        let ans = Method {
+            sig: MsgPat::Unary(mk_ident("foo")),
+            temps: None,
+            stmts: Some(vec![
+                Statement::Ret(mk_ident_expr("bar"))
+            ])
+        };
+        assert_eq!(res, Ok((ans, "")));
+    }
+
+    #[test]
+    fn test_method_temps() {
+        let res = method_p().parse("foo |asdf| ^ bar");
+        let ans = Method {
+            sig: MsgPat::Unary(mk_ident("foo")),
+            temps: Some(vec![mk_ident("asdf")]),
+            stmts: Some(vec![
+                Statement::Ret(mk_ident_expr("bar"))
+            ])
+        };
+        assert_eq!(res, Ok((ans, "")));
+    }
+
+    #[test]
+    fn test_method_bare_ret_kwargs() {
+        let res = method_p().parse("foo: asdf bar");
+        let ans = Method {
+            sig: MsgPat::Kwargs(vec![
+                KeyPat {
+                    keyword: mk_ident("foo:"),
+                    var: mk_ident("asdf"),
+                }
+            ]),
+            temps: None,
+            stmts: Some(vec![
+                Statement::E(mk_ident_expr("bar"))
+            ])
+        };
+        assert_eq!(res, Ok((ans, "")));
+    }
+
+    #[test]
+    fn test_method_bare_ret() {
+        let res = method_p().parse("foo bar");
+        let ans = Method {
+            sig: MsgPat::Unary(mk_ident("foo")),
+            temps: None,
+            stmts: Some(vec![
+                Statement::E(mk_ident_expr("bar"))
+            ])
+        };
+        assert_eq!(res, Ok((ans, "")));
+    }
+
+    #[test]
+    fn test_method_kwargs() {
+        let res = method_p().parse("foo: asdf ^ bar");
+        let ans = Method {
+            sig: MsgPat::Kwargs(vec![
+                KeyPat {
+                    keyword: mk_ident("foo:"),
+                    var: mk_ident("asdf"),
+                }
+            ]),
+            temps: None,
+            stmts: Some(vec![
+                Statement::Ret(mk_ident_expr("bar"))
+            ])
+        };
+        assert_eq!(res, Ok((ans, "")));
+    }
+
+    #[test]
+    fn test_temporaries_empty() {
+        let res = temporaries().parse("");
+        assert!(is_err(res));
+    }
+
+    #[test]
+    fn test_temporaries() {
+        let res = temporaries().parse("| foo |");
+        let ans = vec![mk_ident("foo")];
+        assert_eq!(res, Ok((ans, "")));
+    }
+
 
     #[test]
     fn test_any_whitespace() {
