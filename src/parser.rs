@@ -3,8 +3,8 @@
 use combine::{none_of, many, many1, try, token, optional};
 use combine::Parser;
 use combine::primitives::Stream;
-use combine::combinator::{one_of, any, between, sep_by, value};
-use combine::char::{letter, digit, upper, string, alpha_num, spaces};
+use combine::combinator::*;
+use combine::char::*;
 
 use syntax::*;
 
@@ -25,7 +25,7 @@ parser! {
     fn unary_object[I]()(I) -> Expr
         where [I: Stream<Item = char>]
     {
-        primary().or(unary_expr())
+        look_ahead(any()).then(|_|primary().or(unary_expr()))
     }
 }
 
@@ -57,7 +57,7 @@ parser! {
     fn binary_object[I]()(I) -> Expr
         where [I: Stream<Item = char>]
     {
-        spaces().then(|_| unary_object().or(binary_expr()))
+        spaces().then(|_| look_ahead(any()).then(|_| unary_object().or(binary_expr())))
     }
 }
 
@@ -609,18 +609,18 @@ mod tests {
         assert_eq!(res, Ok((ans, "")));
     }
 
-//    #[test]
-//    fn test_empty_statements() {
-//        let res = statements().parse("");
-//        let ans = vec![];
-//        assert_eq!(res, Ok((ans, "")));
-//    }
+    #[test]
+    fn test_empty_statements() {
+        let res = statements().parse("");
+        let ans = vec![];
+        assert_eq!(res, Ok((ans, "")));
+    }
 
-//    #[test]
-//    fn test_empty_expr() {
-//        let res = expr().parse("");
-//        assert!(is_err(res));
-//    }
+    #[test]
+    fn test_empty_expr() {
+        let res = expr().parse("");
+        assert!(is_err(res));
+    }
 
     #[test]
     fn test_empty_ident() {
@@ -637,10 +637,25 @@ mod tests {
         assert!(is_err(message_expr().parse("")));
     }
 
-//    #[test]
-//    fn test_empty_cascaded_message_expr() {
-//        assert!(is_err(cascaded_message_expr().parse("")));
-//    }
+    #[test]
+    fn test_empty_keyword_expr() {
+        assert!(is_err(keyword_expr().parse("")));
+    }
+
+    #[test]
+    fn test_empty_binary_object() {
+        assert!(is_err(binary_object().parse("")));
+    }
+
+    #[test]
+    fn test_empty_unary_object() {
+        assert!(is_err(unary_object().parse("")));
+    }
+
+    #[test]
+    fn test_empty_cascaded_message_expr() {
+        assert!(is_err(cascaded_message_expr().parse("")));
+    }
 
     #[test]
     fn test_expr_statement() {
@@ -668,5 +683,10 @@ mod tests {
             Statement::Ret(mk_ident_expr("foo")),
         ];
         assert_eq!(res, Ok((ans, "")));
+    }
+
+    #[test]
+    fn test_any_whitespace() {
+        assert!(is_err(any().parse("")));
     }
 }
