@@ -88,11 +88,13 @@ pub struct Num {
     pub exponent: Option<u32>,
 }
 
-pub fn mk_num(s: &str) -> Num {
-    Num {
-        integer: String::from(s),
-        radix: None,
-        mantissa: None,
-        exponent: None
+impl Num {
+    pub fn int_from_str(s: &str) -> Self {
+        Num {
+            integer: String::from(s),
+            radix: None,
+            mantissa: None,
+            exponent: None
+        }
     }
 }

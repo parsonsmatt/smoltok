@@ -429,7 +429,7 @@ mod tests {
     #[test]
     fn test_bare_number() {
         let res = number().parse("10");
-        let ans = mk_num("10");
+        let ans = Num::int_from_str("10");
         assert_eq!(res, Ok((ans, "")));
     }
 
@@ -514,7 +514,7 @@ mod tests {
         let res = literal().parse("#('hello' 123 world)");
         let ans = Literal::Array(vec![
             Literal::Str(String::from("hello")),
-            Literal::Number(mk_num("123")),
+            Literal::Number(Num::int_from_str("123")),
             Literal::Symbol(String::from("world")),
         ]);
         assert_eq!(res, Ok((ans, "")));
@@ -588,8 +588,8 @@ mod tests {
     fn test_binary_expr_num() {
         let res = binary_expr().parse("3 + 2");
         let ans = Expr::Message {
-            receiver: Box::new(Expr::Lit(Literal::Number(mk_num("3")))),
-            selector: Msg::Binary(String::from("+"), Box::new(Expr::Lit(Literal::Number(mk_num("2")))))
+            receiver: Box::new(Expr::Lit(Literal::Number(Num::int_from_str("3")))),
+            selector: Msg::Binary(String::from("+"), Box::new(Expr::Lit(Literal::Number(Num::int_from_str("2")))))
         };
         assert_eq!(res, Ok((ans, "")));
     }
@@ -599,7 +599,7 @@ mod tests {
         let res = expr().parse("foo + 2");
         let ans = Expr::Message {
             receiver: Box::new(mk_ident_expr("foo")),
-            selector: Msg::Binary(String::from("+"), Box::new(Expr::Lit(Literal::Number(mk_num("2")))))
+            selector: Msg::Binary(String::from("+"), Box::new(Expr::Lit(Literal::Number(Num::int_from_str("2")))))
         };
         assert_eq!(res, Ok((ans, "")));
     }
@@ -612,7 +612,7 @@ mod tests {
             selector: Msg::Kwargs(vec![
                 Keyword {
                     id: mk_ident("b:"),
-                    val: Expr::Lit(Literal::Number(mk_num("2")))
+                    val: Expr::Lit(Literal::Number(Num::int_from_str("2")))
                 },
             ])
         };
@@ -627,11 +627,11 @@ mod tests {
             selector: Msg::Kwargs(vec![
                 Keyword {
                     id: mk_ident("b:"),
-                    val: Expr::Lit(Literal::Number(mk_num("2")))
+                    val: Expr::Lit(Literal::Number(Num::int_from_str("2")))
                 },
                 Keyword {
                     id: mk_ident("c:"),
-                    val: Expr::Lit(Literal::Number(mk_num("3")))
+                    val: Expr::Lit(Literal::Number(Num::int_from_str("3")))
                 },
             ])
         };
