@@ -412,7 +412,7 @@ parser! {
 mod tests {
     use super::*;
 
-    fn  is_err<T, E>(x : Result<T, E>) -> bool {
+    fn is_err<T, E>(x : Result<T, E>) -> bool {
         match x {
             Ok(_) => false,
             _ => true,
