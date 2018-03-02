@@ -64,6 +64,17 @@ pub struct Method {
 #[derive(Debug, PartialEq, Clone)]
 pub struct Ident(pub String);
 
+/// Create an Expr from a string.
+///
+/// # Examples
+///
+/// ```
+/// use smoltok::syntax::*;
+/// assert_eq!(
+///     mk_ident_expr("hey"),
+///     Expr::Id(Ident(String::from("hey")))
+/// );
+/// ```
 pub fn mk_ident_expr(s: &str) -> Expr {
     Expr::Id(mk_ident(s))
 }
@@ -89,6 +100,7 @@ pub struct Num {
 }
 
 impl Num {
+    /// Convenient alias for creating a base 10 integral number from a string.
     pub fn int_from_str(s: &str) -> Self {
         Num {
             integer: String::from(s),
