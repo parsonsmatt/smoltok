@@ -18,6 +18,7 @@ parser! {
            ).or(try(cascaded_message_expr()))
             .or(try(message_expr()))
             .or(try(primary()))
+            .or(try(method_p().map(Expr::Method)))
     }
 }
 
@@ -390,7 +391,6 @@ parser! {
         ).map(|(sig, temps, stmts)|
             Method { sig, temps, stmts }
         )
-
     }
 }
 

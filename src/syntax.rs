@@ -1,5 +1,7 @@
-/// Syntax data types for the Smalltalk programming language.
+// Syntax data types for the Smoltok programming language.
 
+/// The datatype representing valid syntax in Smoltok. Currently, we don't have
+/// a type for declarations.
 pub enum Syntax {
     Expr(Expr)
 }
@@ -11,6 +13,7 @@ pub enum Expr {
     Lit(Literal),
     Message { receiver: Box<Expr>, selector: Msg },
     Block { vars: Vec<Ident>, statements: Vec<Statement>},
+    Method(Method),
 }
 
 #[derive(Debug, PartialEq, Clone)]
