@@ -109,4 +109,8 @@ impl Num {
             exponent: None
         }
     }
+
+    pub fn to_expr(self) -> Expr {
+        Expr::Lit(Literal::Number(self))
+    }
 }

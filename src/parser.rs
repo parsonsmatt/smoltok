@@ -846,4 +846,52 @@ mod tests {
     fn test_any_whitespace() {
         assert!(is_err(any().parse("")));
     }
+
+    #[test]
+    fn test_rectangle_constructor() {
+        let res = expr().parse("Rectangle
+    origin: (Point x:0 y:10)
+    extent: (Point x:5 y:15)");
+        let ans = Expr::Message {
+            receiver: Box::new(
+                mk_ident_expr("Rectangle")
+            ),
+            selector: Msg::Kwargs(vec![
+                Keyword {
+                    id: mk_ident("origin:"),
+                    val: Expr::Message {
+                        receiver: Box::new(mk_ident_expr("Point")),
+                        selector: Msg::Kwargs(vec![
+                            Keyword {
+                                id: mk_ident("x:"),
+                                val: Num::int_from_str("0").to_expr(),
+                            },
+                            Keyword {
+                                id: mk_ident("y:"),
+                                val: Num::int_from_str("10").to_expr(),
+                            }
+                        ]),
+                    }
+                },
+                Keyword {
+                    id: mk_ident("extent:"),
+                    val: Expr::Message {
+                        receiver: Box::new(mk_ident_expr("Point")),
+                        selector: Msg::Kwargs(vec![
+                            Keyword {
+                                id: mk_ident("x:"),
+                                val: Num::int_from_str("5").to_expr(),
+                            },
+                            Keyword {
+                                id: mk_ident("y:"),
+                                val: Num::int_from_str("15").to_expr()
+                            }
+                        ]),
+                    }
+                },
+            ])
+        };
+
+        assert_eq!(res, Ok((ans, "")));
+    }
 }
